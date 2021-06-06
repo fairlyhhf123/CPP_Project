@@ -32,13 +32,11 @@ public:
 
     explicit Matrix<T>(vector<vector<T>> &&vec);
 
-//    inline T get_inside(int rows, int cols) const;
-//
-//    static Matrix<T> values(int rows = 0, int cols = 0, T = static_cast<T>(0));
-//
-//    static Matrix<T> eye(int s);
-//
-//    static Matrix<T> eye_value(int s, T t);
+    static Matrix<T> values(int rows = 0, int cols = 0, T = static_cast<T>(0));
+
+    static Matrix<T> eye(int s);
+
+    static Matrix<T> eye_value(int s, T t);
 
     friend std::ostream &operator<<(std::ostream &output, const Matrix<T> &matrix) {
         for (const auto &i : matrix.vec) {
@@ -49,6 +47,9 @@ public:
         }
         return output;
     }
+    inline int rows() const;
+
+    inline int cols() const;
 };
 
 template<typename T>
@@ -88,5 +89,27 @@ Matrix<T>::Matrix(const vector<vector<T>> &vec) {
 template<typename T>
 Matrix<T>::Matrix(vector<vector<T>> &&vec) {
     this->vec = std::move(vec);
+}
+
+template<typename T>
+Matrix<T> Matrix<T>::values(int rows, int cols, T t) {
+    Matrix<T> will_return(rows, cols);
+    for (auto &i : will_return.vec) {
+        i = vector<T>(cols, t);
+    }
+    return will_return;
+}
+
+template<typename T>
+inline int Matrix<T>::rows() const {
+    return static_cast<int>(this->vec.size());
+}
+
+template<typename T>
+inline int Matrix<T>::cols() const {
+    if (this->rows() == 0) {
+        return 0;
+    }
+    return static_cast<int>(this->vec.front().size());
 }
 #endif //CPROJECT_MATRIX_H
