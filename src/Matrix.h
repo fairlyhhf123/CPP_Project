@@ -12,13 +12,20 @@
 
 
 #include <vector>
+#include <complex>
+#include <typeinfo>
+#include <cmath>
+#include <map>
 #include <ostream>
 #include <iostream>
 #include <opencv2/opencv.hpp>
 using namespace std;
 using namespace cv;
 template<typename T>
+class Vector;
+template<typename T>
 class Matrix {
+    friend class Vector<T>;
 private:
     vector<vector<T>> vec;
 public:
@@ -66,6 +73,500 @@ public:
         return output;
     }
 
+    Matrix operator+(Matrix<T> &right) {
+        Matrix<T> m1(vec.size(), vec[0].size());
+        if (vec.size() != right.vec.size() && vec[0].size() != right.vec[0].size()) {
+            std::cout << "The dimension is wrong!" << endl;
+            return m1;
+        }
+
+        for (int i = 0; i < vec.size(); i++) {
+            for (int j = 0; j < vec[0].size(); j++) {
+                m1.setVecValue(i, j, vec[i][j] + right.vec[i][j]);
+            }
+        }
+        return m1;
+    }//add
+
+    Matrix operator-(Matrix<T> &right) {
+        Matrix<T> m1(vec.size(), vec[0].size());
+        if (vec.size() != right.vec.size() && vec[0].size() != right.vec[0].size()) {
+            std::cout << "The dimension is wrong!" << endl;
+            return m1;
+        }
+        for (int i = 0; i < vec.size(); i++) {
+            for (int j = 0; j < vec[0].size(); j++) {
+                m1.setVecValue(i, j, vec[i][j] - right.vec[i][j]);
+            }
+        }
+        return m1;
+    }//sub
+
+    Matrix operator*(int num) {
+        Matrix<T> m1(vec.size(), vec[0].size());
+        for (int i = 0; i < vec.size(); i++) {
+            for (int j = 0; j < vec[0].size(); j++) {
+                m1.setVecValue(i, j, this->getvecvalue(i, j) * num);
+            }
+        }
+        return m1;
+    }//scalar multiplication
+
+    Matrix operator/(int num) {
+        Matrix<T> m1(vec.size(), vec[0].size());
+        for (int i = 0; i < vec.size(); i++) {
+            for (int j = 0; j < vec[0].size(); j++) {
+                m1.setVecValue(i, j, this->getvecvalue(i, j) / num);
+            }
+        }
+        return m1;
+    }//scalar division
+
+    Matrix Transpose() {
+        Matrix<T> m1(vec[0].size(), vec.size());
+        for (int i = 0; i < vec[0].size(); i++) {
+            for (int j = 0; j < vec.size(); j++) {
+                m1.setVecValue(i, j, this->getvecvalue(j, i));
+            }
+        }
+        return m1;
+    }//transpose
+
+    Matrix Conjugation() {
+        Matrix<T> m1(vec.size(), vec[0].size());
+        for (int i = 0; i < vec.size(); i++) {
+            for (int j = 0; j < vec[0].size(); j++) {
+                complex<T> m2;
+                m2.real(real(this->getvecvalue(i, j)));
+                m2.imag(imag(this->getvecvalue(i, j)) * -1);
+                m1.setVecValue(i, j, m2);
+            }
+        }
+        return m1;
+    }//Conjugation
+
+    Matrix Element_Wise(const Matrix<T> &right) {
+        if (vec.size() != right.vec.size() || vec[0].size() != right.vec[0].size()) {
+            cout << "the dimension is wrong!" << endl;
+        }
+        Matrix<T> m1(vec.size(), vec[0].size());
+        for (int i = 0; i < vec.size(); i++) {
+            for (int j = 0; j < vec[0].size(); j++) {
+                m1.setVecValue(i, j, vec[i][j] * right.vec[i][j]);
+            }
+        }
+        return m1;
+    }//Element_Wise
+
+    Matrix operator*(Matrix<T> &right) {
+        if (vec[0].size() != right.vec.size()) {
+            std::cout << "The dimension is wrong!" << endl;
+            return this;
+        }
+        Matrix<T> m1(this->vec.size(), right.vec[0].size());
+        for (int i = 0; i < vec.size(); i++) {
+            for (int j = 0; j < right.vec[0].size(); j++) {
+                for (int k = 0; k < vec[0].size(); k++) {
+                    m1.setVecValue(i, j, this->getvecvalue(i, k) * right.getvecvalue(k, j));
+                }
+            }
+        }
+        return m1;
+    }//matrix-matrix multiplication
+
+    Matrix operator*(Vector<T> &right) {
+        if (this->vec[0].size() != right.dimension) {
+            cout << "The dimension is wrong!" << endl;
+            return 0;
+        }
+        Matrix<T> m1(right.dimension, 1);
+        for (int i = 0; i < right.dimension; i++) {
+            m1 = m1 + this->pickColvalue(this, i) * right[i];
+        }
+        return m1;
+    }//matrix-vector multiplication
+
+    static inline T hypot(T a, T b)
+    {
+        a = std::abs(a);
+        b = std::abs(b);
+        if (a > b) {
+            b /= a;
+            return a*std::sqrt(1 + b*b);
+        }
+        if (b > 0) {
+            a /= b;
+            return b*std::sqrt(1 + a*a);
+        }
+        return 0;
+    }
+
+    int eigen(vector<T>& eigenvalues, vector<vector<T>>& eigenvectors, bool sort_ = true)
+    {
+        auto n = vec.size();
+        for (const auto& m : vec) {
+            if (m.size() != n) {
+                fprintf(stderr, "mat must be square and it should be a real symmetric matrix\n");
+                return -1;
+            }
+        }
+
+        eigenvalues.resize(n, (T)0);
+        std::vector<T> V(n * n, (T)0);
+        for (int i = 0; i < n; ++i) {
+            V[n * i + i] = (T)1;
+            eigenvalues[i] = vec[i][i];
+        }
+
+        const T eps = std::numeric_limits<T>::epsilon();
+        int maxIters{ (int)n * (int)n * 30 };
+        T mv{(T)0 };
+        std::vector<int> indR(n, 0), indC(n, 0);
+        std::vector<T> A;
+        for (int i = 0; i < n; ++i) {
+            A.insert(A.begin() + i * n, vec[i].begin(), vec[i].end());
+        }
+
+        for (int k = 0; k < n; ++k) {
+            int m, i;
+            if (k < n - 1) {
+                for (m = k + 1, mv = std::abs(A[n*k + m]), i = k + 2; i < n; i++) {
+                    T val = std::abs(A[n * k + i]);
+                    if (mv < val)
+                        mv = val, m = i;
+                }
+                indR[k] = m;
+            }
+            if (k > 0) {
+                for (m = 0, mv = std::abs(A[k]), i = 1; i < k; i++) {
+                    T val = std::abs(A[n * i + k]);
+                    if (mv < val)
+                        mv = val, m = i;
+                }
+                indC[k] = m;
+            }
+        }
+
+        if (n > 1) for (int iters = 0; iters < maxIters; iters++) {
+                int k, i, m;
+                // find index (k,l) of pivot p
+                for (k = 0, mv = std::abs(A[indR[0]]), i = 1; i < n - 1; i++) {
+                    T val = std::abs(A[n * i + indR[i]]);
+                    if (mv < val)
+                        mv = val, k = i;
+                }
+                int l = indR[k];
+                for (i = 1; i < n; i++) {
+                    T val = std::abs(A[n * indC[i] + i]);
+                    if (mv < val)
+                        mv = val, k = indC[i], l = i;
+                }
+
+                T p = A[n * k + l];
+                if (std::abs(p) <= eps)
+                    break;
+                T y = (T)((eigenvalues[l] - eigenvalues[k]) * 0.5);
+                T t = std::abs(y) + hypot(p, y);
+                T s = hypot(p, t);
+                T c = t / s;
+                s = p / s; t = (p / t)*p;
+                if (y < 0)
+                    s = -s, t = -t;
+                A[n*k + l] = 0;
+
+                eigenvalues[k] -= t;
+                eigenvalues[l] += t;
+
+                T a0, b0;
+
+#undef rotate
+#define rotate(v0, v1) a0 = v0, b0 = v1, v0 = a0*c - b0*s, v1 = a0*s + b0*c
+
+                // rotate rows and columns k and l
+                for (i = 0; i < k; i++)
+                    rotate(A[n*i + k], A[n*i + l]);
+                for (i = k + 1; i < l; i++)
+                    rotate(A[n*k + i], A[n*i + l]);
+                for (i = l + 1; i < n; i++)
+                    rotate(A[n*k + i], A[n*l + i]);
+
+                // rotate eigenvectors
+                for (i = 0; i < n; i++)
+                    rotate(V[n*k+i], V[n*l+i]);
+
+#undef rotate
+
+                for (int j = 0; j < 2; j++) {
+                    int idx = j == 0 ? k : l;
+                    if (idx < n - 1) {
+                        for (m = idx + 1, mv = std::abs(A[n*idx + m]), i = idx + 2; i < n; i++) {
+                            T val = std::abs(A[n * idx + i]);
+                            if (mv < val)
+                                mv = val, m = i;
+                        }
+                        indR[idx] = m;
+                    }
+                    if (idx > 0) {
+                        for (m = 0, mv = std::abs(A[idx]), i = 1; i < idx; i++) {
+                            T val = std::abs(A[n * i + idx]);
+                            if (mv < val)
+                                mv = val, m = i;
+                        }
+                        indC[idx] = m;
+                    }
+                }
+            }
+
+        // sort eigenvalues & eigenvectors
+        if (sort_) {
+            for (int k = 0; k < n - 1; k++) {
+                int m = k;
+                for (int i = k + 1; i < n; i++) {
+                    if (eigenvalues[m] < eigenvalues[i])
+                        m = i;
+                }
+                if (k != m) {
+                    std::swap(eigenvalues[m], eigenvalues[k]);
+                    for (int i = 0; i < n; i++)
+                        std::swap(V[n*m+i], V[n*k+i]);
+                }
+            }
+        }
+
+        eigenvectors.resize(n);
+        for (int i = 0; i < n; ++i) {
+            eigenvectors[i].resize(n);
+            eigenvectors[i].assign(V.begin() + i * n, V.begin() + i * n + n);
+        }
+
+        return 0;
+    }//eigenvalues and eigenvectors
+
+    T Traces(){
+        T traces;
+        for (int i = 0; i < vec.size(); i++) {
+            traces += vec[i][i];
+        }
+        return traces;
+    }//traces
+
+    T determinant(vector<vector<T>> det , int size)//det-行列式，n:行列式的阶数
+    {
+        T detVal = 0;//行列式的值
+
+        if(size == 1)//递归终止条件
+            return det[0][0];
+
+        vector<vector<T>> tempdet = vector<vector<T >>(size - 1 , vector<T>( size - 1 ));
+
+
+        for(int i=0;i < size ;i++)//第一重循环，行列式按第一行展开
+        {
+            for(int j = 0 ; j < size -1 ; j++)
+                for(int k=0;k < size - 1 ;k++)
+                {
+                    if(k <i)
+                        tempdet[j][k] = det[j+1][k] ;
+                    else
+                        tempdet[j][k] = det[j+1][k+1];
+                }
+            detVal += det[0][i] * pow(-1 , i ) * determinant(tempdet, size - 1 );
+
+        }
+        return detVal;
+    }//determinant
+
+    vector<vector<T>>  getAStart(vector<vector<T>> arcs)
+    {
+        vector<vector<T>> ans = vector<vector<T>>(vec.size() , vector<T>(vec.size()));
+        if(vec.size() == 1)
+        {
+            ans[0][0] = 1;
+            return ans;
+        }
+        int i,j,k,t;
+        vector<vector<T>> temp = vector<vector<T>>(vec.size() , vector<T>(vec.size()));
+        for(i = 0;i < vec.size(); i++)
+        {
+            for(j = 0;j < vec.size();j++)
+            {
+                for(k=0; k < vec.size() - 1;k++)
+                {
+                    for(t=0;t < vec.size() - 1;t++)
+                    {
+                        temp[k][t] = arcs[k>=i?k+1:k][t>=j?t+1:t];
+                    }
+                }
+                ans[j][i]  =  determinant(temp,vec.size() - 1);  //此处顺便进行了转置
+                if(( i + j ) % 2 == 1)
+                {
+                    ans[j][i] = - ans[j][i];
+                }
+            }
+        }
+        return ans;
+    }
+
+    //得到给定矩阵src的逆矩阵保存到des中。
+    bool GetMatrixInverse(vector<vector<T>>&des)
+    {
+        des = vector<vector<T >>(vec.size()  , vector<T>(vec.size()));
+        vector<vector<T>> t = vector<vector<T >>(vec.size()  , vector<T>(vec.size()));
+        int flag = determinant(vec , vec.size());
+
+        if(0==flag)
+        {
+            cout<< "原矩阵行列式为0，无法求逆。请重新运行" <<endl;
+            return false;//如果算出矩阵的行列式为0，则不往下进行
+        }
+        else
+        {
+            t = getAStart(vec,vec.size());
+            for(int i = 0;i < vec.size();i++)
+            {
+                for(int j = 0;j < vec.size();j++)
+                {
+                    des[i][j]=t[i][j]/flag;
+                }
+
+            }
+        }
+        return true;
+    }//inverse
+
+    T min_all() {
+        T min = INT_MAX;
+        for (int i = 0; i < vec.size(); i++) {
+            for (int j = 0; j < vec[0].size(); j++) {
+                if (vec[i][j] < min) {
+                    min = vec[i][j];
+                }
+            }
+        }
+        return min;
+    }
+
+    T min_row(int row) {
+        T min = INT_MAX;
+        for (int j = 0; j < vec[0].size(); j++) {
+            if (vec[row][j] < min) {
+                min = vec[row][j];
+            }
+        }
+
+        return min;
+    }
+
+    T min_col(int col) {
+        T min = INT_MAX;
+        for (int j = 0; j < vec[0].size(); j++) {
+            if (vec[j][col] < min) {
+                min = vec[j][col];
+            }
+        }
+
+        return min;
+    }
+
+    T max_all() {
+        T max = INT_MIN;
+        for (int i = 0; i < vec.size(); i++) {
+            for (int j = 0; j < vec[0].size(); j++) {
+                if (vec[i][j] > max) {
+                    max = vec[i][j];
+                }
+            }
+        }
+        return max;
+    }
+
+    T max_row(int row) {
+        T max = INT_MIN;
+        for (int j = 0; j < vec[0].size(); j++) {
+            if (vec[row][j] > max) {
+                max = vec[row][j];
+            }
+        }
+
+        return max;
+    }
+
+    T max_col(int col) {
+        T max = INT_MIN;
+        for (int j = 0; j < vec[0].size(); j++) {
+            if (vec[j][col] > max) {
+                max = vec[j][col];
+            }
+        }
+
+        return max;
+    }
+
+    T sum_all() {
+        T sum = 0;
+        for (int i = 0; i < vec.size(); i++) {
+            for (int j = 0; j < vec[0].size(); j++) {
+                sum += vec[i][j];
+            }
+        }
+        return sum;
+    }
+
+    T sum_row(int row) {
+        T sum = 0;
+        for (int j = 0; j < vec[row].size(); j++) {
+            sum += vec[row][j];
+        }
+
+        return sum;
+    }
+
+    T sum_col(int col) {
+        T sum = 0;
+        for (int j = 0; j < vec.size(); j++) {
+            sum += vec[j][col];
+        }
+
+        return sum;
+    }
+
+    T avg_all() {
+        T sum = 0;
+        int he;
+        for (int i = 0; i < vec.size(); i++) {
+            for (int j = 0; j < vec[0].size(); j++) {
+                sum += vec[i][j];
+                he++;
+            }
+        }
+        T avg = sum / he;
+        return avg;
+    }
+
+    T avg_row(int row) {
+        T sum = 0;
+        int he;
+        for (int j = 0; j < vec[row].size(); j++) {
+            sum += vec[row][j];
+            he++;
+        }
+
+        T avg = sum / he;
+        return avg;
+    }
+
+    T avg_col(int col) {
+        T sum = 0;
+        int he;
+        for (int j = 0; j < vec.size(); j++) {
+            sum += vec[j][col];
+            he++;
+        }
+
+        T avg = sum / he;
+        return avg;
+    }
+
 
 
 
@@ -82,6 +583,111 @@ public:
 
     inline int cols() const;
 };
+
+template<typename T>
+class Vector {
+private:
+    vector<vector<T>> value;
+    int dimension{}; //向量的维数
+public:
+    Vector()= default;;
+    Vector(Vector& source);
+    void setValue(int i,T newvalue);
+    T getValue(int i);
+    void setDimension(int newDimension);
+    int getDimension();
+
+    Vector pickvalue(Matrix<T> & m, int col){
+        Vector<T> m1;
+        m1.dimension = m.vec[0].size();
+        for(int i = 0 ; i < m1.dimension ; i++){
+            m1[i] = m.getvecvalue(col , i);
+        }
+        return m1;
+    }
+    Vector operator +(Vector& right)
+    {
+        if(dimension != right.dimension)
+        {
+            std::cout << "The dimension is wrong!" << endl;
+            return this;
+        }
+        for(int i = 0 ; i < dimension ; i++){
+            this->setValue(i,this->getValue(i) + right.getValue(i));
+        }
+        return this;
+    }
+    Vector operator -(Vector& right)
+    {
+        if(dimension != right.dimension)
+        {
+            std::cout << "The dimension is wrong!" << endl;
+            return this;
+        }
+        for(int i = 0 ; i < dimension ; i++){
+            this->setValue(i,this->getValue(i) - right.getValue(i));
+        }
+        return this;
+    }
+
+    T operator *(Vector& right)
+    {
+        T ans;
+        for(int i = 0 ; i < dimension ; i++){
+            ans += this->getValue(i) * right.getValue(i);
+        }
+        return ans;
+    }//dot product
+
+    Matrix<T> operator *(Matrix<T>& right)
+    {
+        if(dimension != right.vec.size()){
+            cout << "The dimension is wrong!" << endl;
+            return 0;
+        }
+        Matrix<T> m1(1 , right.dimension);
+        for(int i = 0 ; i < right.dimension ; i++){
+            m1 = m1 + this->pickRowvalue(this , i) * right[i];
+        }
+        return m1;
+    }//matrix-vector multiplication
+
+    friend std::ostream &operator<<(std::ostream &output, const Vector<T>& v) {
+        for (const auto &i : v) {
+            output << i << " ";
+        }
+        output << endl;
+        return output;
+    }
+};
+
+template<typename T>
+void Vector<T>::setValue(int i, T newvalue) {
+    value[i] = newvalue;
+}
+
+template<typename T>
+Vector<T>::Vector(Vector &source) {
+    dimension = source.dimension;
+    for(int i = 0 ; i < dimension ; i++){
+        value[i] = source.value[i];
+    }
+}
+
+template<typename T>
+T Vector<T>::getValue(int i) {
+    return value[i];
+}
+
+template<typename T>
+void Vector<T>::setDimension(int newDimension) {
+    dimension = newDimension;
+}
+
+template<typename T>
+int Vector<T>::getDimension() {
+    return dimension;
+}
 
 template<typename T>
 int Matrix<T>::chakan(int rows, int cols) {
