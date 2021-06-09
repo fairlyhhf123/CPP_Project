@@ -17,9 +17,18 @@
 #include <iostream>
 #include <limits>
 #include "climits"
-//#include <opencv2/opencv.hpp>
+#include <opencv2/opencv.hpp>
 using namespace std;
-//using namespace cv;
+struct Size_Matching_Exception : public exception {
+    char result[100];
+    explicit Size_Matching_Exception(const char *message, int line) {
+        sprintf(result, "%s, in line: %d", message, line);
+    }
+    const char *what() const noexcept override {
+        return result;
+    }
+};
+using namespace cv;
 template<typename T>
 class Vector;
 template<typename T>
@@ -64,6 +73,9 @@ public:
     }
 
     Matrix operator+(Matrix<T> &right) {
+        if (vec.size()!= right.vec.size() || vec[0].size()!= right.vec[0].size()) {
+            throw Size_Matching_Exception("Two adding matrix must have the same size!", __LINE__);
+        }
         Matrix<T> m1(vec.size(), vec[0].size());
         if (vec.size() != right.vec.size() && vec[0].size() != right.vec[0].size()) {
             std::cout << "The dimension is wrong!" << endl;
@@ -79,6 +91,9 @@ public:
     }//add
 
     Matrix operator-(Matrix<T> &right) {
+        if (vec.size()!= right.vec.size() || vec[0].size()!= right.vec[0].size()) {
+            throw Size_Matching_Exception("Two subtract matrix must have the same size!", __LINE__);
+        }
         Matrix<T> m1(vec.size(), vec[0].size());
         if (vec.size() != right.vec.size() && vec[0].size() != right.vec[0].size()) {
             std::cout << "The dimension is wrong!" << endl;
@@ -112,47 +127,18 @@ public:
         return m1;
     }//scalar division
 
-    Matrix Transpose() {
-        Matrix<T> m1(vec[0].size(), vec.size());
-        for (int i = 0; i < vec[0].size(); i++) {
-            for (int j = 0; j < vec.size(); j++) {
-                m1.setVecValue(i, j, this->getvecvalue(j, i));
-            }
-        }
-        return m1;
-    }//transpose
+    Matrix Transpose();
 
-    Matrix Conjugation() {
-        Matrix<T> m1(vec.size(), vec[0].size());
-        for (int i = 0; i < vec.size(); i++) {
-            for (int j = 0; j < vec[0].size(); j++) {
-                T m2;
-                m2.real(real(this->getvecvalue(i, j)));
-                m2.imag(imag(this->getvecvalue(i, j)) * -1);
-                m1.setVecValue(i, j, m2);
-            }
-        }
-        return m1;
-    }//Conjugation
+    Matrix Conjugation();
 
-    Matrix Element_Wise(const Matrix<T> &right) {
-        if (vec.size() != right.vec.size() || vec[0].size() != right.vec[0].size()) {
-            cout << "the dimension is wrong!" << endl;
-        }
-        Matrix<T> m1(vec.size(), vec[0].size());
-        for (int i = 0; i < vec.size(); i++) {
-            for (int j = 0; j < vec[0].size(); j++) {
-                m1.setVecValue(i, j, vec[i][j] * right.vec[i][j]);
-            }
-        }
-        return m1;
-    }//Element_Wise
+    Matrix<T> Element_Wise(const Matrix<T> &right);
 
     Matrix operator*(Matrix<T> &right) {
-        if (vec[0].size() != right.vec.size()) {
-            std::cout << "The dimension is wrong!" << endl;
+        if (vec.size()!= right.vec.size() || vec[0].size()!= right.vec[0].size()) {
+            throw Size_Matching_Exception("Two multiplying matrix must have the same size!", __LINE__);
             return this;
         }
+
         Matrix<T> m1(this->vec.size(), right.vec[0].size());
         for (int i = 0; i < vec.size(); i++) {
             for (int j = 0; j < right.vec[0].size(); j++) {
@@ -166,8 +152,7 @@ public:
 
     Matrix operator*(Vector<T> &right) {
         if (this->vec[0].size() != right.dimension) {
-            cout << "The dimension is wrong!" << endl;
-            return 0;
+            throw Size_Matching_Exception("The dimension of the vector multiplying matrix is wrong!", __LINE__);
         }
         Matrix<T> m1(right.dimension, 1);
         for (int i = 0; i < right.dimension; i++) {
@@ -196,7 +181,7 @@ public:
         auto n = vec.size();
         for (const auto& m : vec) {
             if (m.size() != n) {
-                fprintf(stderr, "mat must be square and it should be a real symmetric matrix\n");
+                throw Size_Matching_Exception("matrix must be square and it should be a real symmetric matrix!", __LINE__);
                 return -1;
             }
         }
@@ -342,6 +327,9 @@ public:
 
     T determinant(vector<vector<T>> det , int size)//det-行列式，n:行列式的阶数
     {
+        if (this->rows() != this->cols()){
+            throw Size_Matching_Exception("Matrix is not square, no determinant!", __LINE__);
+        }
         T detVal = 0;//行列式的值
 
         if(size == 1)//递归终止条件
@@ -437,6 +425,9 @@ public:
     }
 
     T min_row(int row) {
+        if (row <= 0 || row > this->rows()) {
+            throw std::invalid_argument("Row out of range!");
+        }
         T min = INT_MAX;
         for (int j = 0; j < vec[0].size(); j++) {
             if (vec[row][j] < min) {
@@ -448,6 +439,9 @@ public:
     }
 
     T min_col(int col) {
+        if (col <= 0 || col > this->cols()) {
+            throw std::invalid_argument("col out of range");
+        }
         T min = INT_MAX;
         for (int j = 0; j < vec[0].size(); j++) {
             if (vec[j][col] < min) {
@@ -471,6 +465,9 @@ public:
     }
 
     T max_row(int row) {
+        if (row <= 0 || row > this->rows()) {
+            throw std::invalid_argument("row out of range");
+        }
         T max = INT_MIN;
         for (int j = 0; j < vec[0].size(); j++) {
             if (vec[row][j] > max) {
@@ -482,6 +479,9 @@ public:
     }
 
     T max_col(int col) {
+        if (col <= 0 || col > this->cols()) {
+            throw std::invalid_argument("col out of range");
+        }
         T max = INT_MIN;
         for (int j = 0; j < vec[0].size(); j++) {
             if (vec[j][col] > max) {
@@ -503,6 +503,9 @@ public:
     }
 
     T sum_row(int row) {
+        if (row <= 0 || row > this->rows()) {
+            throw std::invalid_argument("row out of range");
+        }
         T sum = 0;
         for (int j = 0; j < vec[row].size(); j++) {
             sum += vec[row][j];
@@ -512,6 +515,9 @@ public:
     }
 
     T sum_col(int col) {
+        if (col <= 0 || col > this->cols()) {
+            throw std::invalid_argument("col out of range");
+        }
         T sum = 0;
         for (int j = 0; j < vec.size(); j++) {
             sum += vec[j][col];
@@ -534,6 +540,9 @@ public:
     }
 
     T avg_row(int row) {
+        if (row <= 0 || row > this->rows()) {
+            throw std::invalid_argument("row out of range(it begin at 1)");
+        }
         T sum = 0;
         int he;
         for (int j = 0; j < vec[row].size(); j++) {
@@ -546,6 +555,9 @@ public:
     }
 
     T avg_col(int col) {
+        if (col <= 0 || col > this->cols()) {
+            throw std::invalid_argument("col out of range");
+        }
         T sum = 0;
         int he;
         for (int j = 0; j < vec.size(); j++) {
@@ -727,6 +739,45 @@ Matrix<T> Matrix<T>::Assign(int rows, int cols, T t) {
 }
 
 template<typename T>
+Matrix<T> Matrix<T>::Transpose() {
+    Matrix<T> m1(vec[0].size(), vec.size());
+    for (int i = 0; i < vec[0].size(); i++) {
+        for (int j = 0; j < vec.size(); j++) {
+            m1.setVecValue(i, j, this->getvecvalue(j, i));
+        }
+    }
+    return m1;
+}//transpose
+
+template<typename T>
+Matrix<T> Matrix<T>::Conjugation() {
+    Matrix<T> m1(vec.size(), vec[0].size());
+    for (int i = 0; i < vec.size(); i++) {
+        for (int j = 0; j < vec[0].size(); j++) {
+            T m2;
+            m2.real(real(this->getvecvalue(i, j)));
+            m2.imag(imag(this->getvecvalue(i, j)) * -1);
+            m1.setVecValue(i, j, m2);
+        }
+    }
+    return m1;
+}//Conjugation
+
+template<typename T>
+Matrix<T> Matrix<T>::Element_Wise(const Matrix<T> &right) {
+    if (vec.size() != right.vec.size() || vec[0].size() != right.vec[0].size()) {
+        throw Size_Matching_Exception("Matrix is not the same size, no element_wise!", __LINE__);
+    }
+    Matrix<T> m1(vec.size(), vec[0].size());
+    for (int i = 0; i < vec.size(); i++) {
+        for (int j = 0; j < vec[0].size(); j++) {
+            m1.setVecValue(i, j, vec[i][j] * right.vec[i][j]);
+        }
+    }
+    return m1;
+}//Element_Wise
+
+template<typename T>
 T Matrix<T>::getvecvalue(int rows, int cols) {
     return vec[rows][cols];
 }
@@ -785,7 +836,8 @@ Matrix<T> slicing(Matrix<T> m, int rowbegin, int rowend, int colbegin, int colen
     int col1 = colend - colbegin + 1;
     Matrix<T> s(row1, col1);
     if (rowbegin > rowend || colbegin > colend) {
-        cout << "Wrong!" << endl;
+        throw Size_Matching_Exception("dimension has something wrong, no slicing!", __LINE__);
+        return s;
     }
     else {
         for (int i = 0; i < row1; i++) {
@@ -802,6 +854,9 @@ Matrix<T> slicing(Matrix<T> m, int rowbegin, int rowend, int colbegin, int colen
 
 template<typename T>
 Matrix<T> convolution(Matrix<T> m1, Matrix<T> m2) {
+    if(m1.rows() != m1.cols() || m2.rows() != m2.cols()){
+        throw Size_Matching_Exception("Matrix is not square, no convolution!", __LINE__);
+    }
     Matrix<T> big;
     Matrix<T> small;
     if (m1.rows() * m1.cols() > m2.rows() * m2.cols()) {
@@ -848,53 +903,53 @@ inline bool Matrix<T>::is_empty() const {
     return vec.empty() || vec.front().empty();
 }
 
-//
-//template<typename T>
-//void zhuanhuan(Matrix<T> m) {
-//    int rows = m.rows();
-//    int cols = m.cols();
-//    Mat testMat1 = Mat(Size(cols, rows), CV_32FC1);
-//    string name;
-//    cout << "请输入储存文件名：";
-//    cin >> name;
-//    for (int i = 0; i < rows; i++)
-//    {
-//        for (int j = 0; j < cols; j++)
-//        {
-//            testMat1.at<float>(i, j) = m.chakan(i,j);
-//        }
-//    }
-//    string name1 = "./" + name + ".xml";
-//
-//    FileStorage fs(name1, FileStorage::WRITE);
-//    fs << "mat1" << testMat1;
-//    fs.release();
-//}
-//
-//template<typename T>
-//Matrix<T>  Matrix<T>::nzh() {
-//    cout << "请输入储存文件名称： ";
-//    string name;
-//    cin >> name;
-//    string name1 = "./" + name + ".xml";
-//
-//    FileStorage fsRead(name1, FileStorage::READ);
-//    Mat readMat1;
-//    fsRead["mat1"] >> readMat1;
-//
-//    Matrix<T> m(readMat1.rows, readMat1.cols);
-//    for (int i = 0; i < readMat1.rows; i++)
-//    {
-//        for (int j = 0; j < readMat1.cols; j++)
-//        {
-//            m.xiugai(i, j, readMat1.at<float>(i, j));
-//        }
-//
-//
-//    }
-//
-//    return m;
-//}
+
+template<typename T>
+void zhuanhuan(Matrix<T> m) {
+    int rows = m.rows();
+    int cols = m.cols();
+    Mat testMat1 = Mat(Size(cols, rows), CV_32FC1);
+    string name;
+    cout << "请输入储存文件名：";
+    cin >> name;
+    for (int i = 0; i < rows; i++)
+    {
+        for (int j = 0; j < cols; j++)
+        {
+            testMat1.at<float>(i, j) = m.chakan(i,j);
+        }
+    }
+    string name1 = "./" + name + ".xml";
+
+    FileStorage fs(name1, FileStorage::WRITE);
+    fs << "mat1" << testMat1;
+    fs.release();
+}
+
+template<typename T>
+Matrix<T>  Matrix<T>::nzh() {
+    cout << "请输入储存文件名称： ";
+    string name;
+    cin >> name;
+    string name1 = "./" + name + ".xml";
+
+    FileStorage fsRead(name1, FileStorage::READ);
+    Mat readMat1;
+    fsRead["mat1"] >> readMat1;
+
+    Matrix<T> m(readMat1.rows, readMat1.cols);
+    for (int i = 0; i < readMat1.rows; i++)
+    {
+        for (int j = 0; j < readMat1.cols; j++)
+        {
+            m.xiugai(i, j, readMat1.at<float>(i, j));
+        }
+
+
+    }
+
+    return m;
+}
 
 
 
