@@ -75,6 +75,8 @@ int main()
                               {4, 5},
                               {5, 6},
                               {7, 8}};
+    vector<vector<int>> v6 = {{2, 3}, {2, 3}, {4, 5},
+                              {5, 6}, {4, 6}, {1, 4}};
     vector<vector<double>> v5 = {{2.1, 2.2, 5.4},
                                  {5.9, 5.8, 7.3}};
 
@@ -85,8 +87,15 @@ int main()
     Matrix<int> add_m3;
     Matrix<complex<int>> add_com_m1(com_v1);
     Matrix<complex<int>> add_com_m2 = add_com_m1 + add_com_m1;
+    cout << "Before: " << endl;
+    cout << add_m1;
+    cout << add_m2;
+    cout << "After: " << endl;
     add_m3 = add_m1 + add_m2;
     cout << add_m3;
+    cout << "Before: " << endl;
+    cout << add_com_m1;
+    cout << "After: " << endl;
     cout << add_com_m2;
 
     //subtraction test
@@ -97,6 +106,10 @@ int main()
     Matrix<double> sub_m4(v2);
     Matrix<double> sub_m5(v5);
     Matrix<double> sub_m6 = sub_m5 - sub_m4;
+    cout << "Before: " << endl;
+    cout << sub_m1;
+    cout << sub_m2;
+    cout << "After: " << endl;
     cout << sub_m3;
 
 
@@ -104,6 +117,9 @@ int main()
     cout << "scalar multiplication test:" << endl;
     Matrix<int> mul_m1(v1);
     Matrix<int> mul_m2 = mul_m1 * 3;
+    cout << "Before: " << endl;
+    cout << mul_m1;
+    cout << "After: " << endl;
     cout << mul_m2;
 
 
@@ -111,19 +127,122 @@ int main()
     cout << "scalar division test: " << endl;
     Matrix<double> div_m1(v2);
     Matrix<double> div_m2 = div_m1 / 4;
+    cout << "Before: " << endl;
+    cout << div_m1;
+    cout << "After: " << endl;
     cout << div_m2;
 
     //transposition
     cout << "transposition test: " << endl;
     Matrix<double> tran_m1(v2);
     Matrix<double> tran_m2 = tran_m1.Transpose();
+    cout << "Before: " << endl;
+    cout << tran_m1;
+    cout << "After: " << endl;
     cout << tran_m2;
 
 
     //conjugation
     cout << "conjugation test: " << endl;
-    Matrix<complex<float>> conj_m1(com_v2);
-    Matrix<complex<float>> conj_m2 = conj_m1.Conjugation();
-    cout << tran_m2;
+    Matrix<complex<int>> conj_m1(com_v1);
+    Matrix<complex<int>> conj_m2 = conj_m1.Conjugation();
+    cout << "Before conjugation: " << endl;
+    cout << conj_m1;
+    cout << "After conjugation: " << endl;
+    cout << conj_m2;
+
+    //Element_Wise
+    cout << "Element_Wise test: " << endl;
+    Matrix<int> ele_m1(v1);
+    Matrix<int> ele_m2(v4);
+    Matrix<int> ele_m3 = ele_m1.Element_Wise(ele_m2);
+    cout << "Before two: " << endl;
+    cout << ele_m1;
+    cout << ele_m2;
+    cout << "After: " << endl;
+    cout << ele_m3;
+
+//    //matrix-matrix multiplication
+//    cout << " matrix-matrix multiplication test: " << endl;
+//    Matrix<int> mm_m1(v1);
+//    Matrix<int> mm_m2(v6);
+//    Matrix<int> mm_m3 = mm_m1 * mm_m2;
+//
+//
+//    //matrix-vector multiplication
+//    cout << "matrix-vector multiplication test: " << endl;
+//    Matrix<int> mv_m1(v1);
+//    Matrix<int> mv_m2 = mv_m1 * v6;
+//
+//
+//    //dot product
+//    cout << "dot product test: " << endl;
+//    vector<vector<int>> d_v1 = v1 * v6;
+
+
+    //cross product
+
+
+
+    //max
+    cout << "max, min, sum, avg, test: " << endl;
+    Matrix<double> cal_m1(v2);
+    cout << "matrix: " << endl;
+    cout << cal_m1;
+    cout << "max of all: " << cal_m1.max_all() << endl;
+    cout << "min of all: " << cal_m1.min_all() << endl;
+    cout << "max of row1: " << cal_m1.max_row(1) << endl;
+    cout << "min of col1: " << cal_m1.min_col(1) << endl;
+    cout << "avg of all: " << cal_m1.avg_all() << endl;
+
+
+
+
+
+
+    //slicing and reshape
+    cout << "slicing and reshape test: " << endl;
+    vector<vector<double>> s(4, vector<double>(4));
+    s = { {1,2,3,4},{5,6,7,8},{1,3,5,7},{2,4,6,8} };
+    Matrix<double> S(s);
+    cout << "Before slicing and reshape: " << endl;
+    cout << S;
+    Matrix<double> m = slicing(S, 1, 2, 3, 4);
+    Matrix<double> b = slicing(S, 3, 4, 1, 2);
+    Matrix<double> c = reshape(S, 3, 3);
+    Matrix<double> d = reshape(b, 1, 4);
+    cout << "slicing 1: " << endl;
+    cout << m;
+    cout << "slicing 2: " << endl;
+    cout << b;
+    cout << "reshape 1: " << endl;
+    cout << c;
+    cout << "reshape 2: " << endl;
+    cout << d;
+
+
+    //convolution
+    cout << "convolution test: " << endl;
+    vector<vector<double>> s1 = {{17,24,1,8,15},{23,5,7,14,16},{4,6,13,20,22},{10,12,19,21,3},{11,18,25,2,9}};
+    Matrix<double> S1(s1);
+    vector<vector<double>> e = {{1,3,1},{0,5,0},{2,1,2}};
+    Matrix<double> E(e);
+    cout << "Before convolution: " << endl;
+    cout << "m1: " << endl;
+    cout << S1;
+    cout << "m2: " << endl;
+    cout << E;
+    Matrix<double> f = convolution(S1, E);
+    cout << "After convolution: " << endl;
+    cout << f;
+
+//    zhuanhuan(f);
+
+//    Matrix<double> g = Matrix<double>::nzh();
+//    cout << g;
+
     return 0;
 }
+//void setVecValue(int rows, int cols, T value);
+//
+//T getvecvalue(int rows, int cols);
