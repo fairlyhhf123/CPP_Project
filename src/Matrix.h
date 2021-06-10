@@ -72,6 +72,22 @@ public:
         return output;
     }
 
+    Vector<T> pickRowvalue( int row){
+        Vector<T> m1(vec[0].size());
+        for(int i= 0 ; i < vec[0].size() ; i++){
+            m1.setValue(i , getvecvalue(row , i));
+        }
+        return m1;
+    }
+    Vector<T> pickColvalue(int col){
+        Vector<T> m1(vec.size());
+        for(int i= 0 ; i < vec.size() ; i++){
+            m1.setValue(i , getvecvalue(i , col));
+        }
+        return m1;
+    }
+
+
     Matrix operator+(Matrix<T> &right) {
         if (vec.size()!= right.vec.size() || vec[0].size()!= right.vec[0].size()) {
             throw Size_Matching_Exception("Two adding matrix must have the same size!", __LINE__);
@@ -111,7 +127,7 @@ public:
         Matrix<T> m1(vec.size(), vec[0].size());
         for (int i = 0; i < vec.size(); i++) {
             for (int j = 0; j < vec[0].size(); j++) {
-                m1.setVecValue(i, j, this->getvecvalue(i, j) * num);
+                m1.setVecValue(i, j, getvecvalue(i, j) * num);
             }
         }
         return m1;
@@ -134,129 +150,134 @@ public:
     Matrix<T> Element_Wise(const Matrix<T> &right);
 
     Matrix operator*(Matrix<T> &right) {
-        if (vec.size()!= right.vec.size() || vec[0].size()!= right.vec[0].size()) {
-            throw Size_Matching_Exception("Two multiplying matrix must have the same size!", __LINE__);
-            return this;
+        if (vec[0].size() != right.vec.size()) {
+            throw Size_Matching_Exception("Two multiplying matrix have size error!", __LINE__);
         }
 
-        Matrix<T> m1(this->vec.size(), right.vec[0].size());
+        Matrix<T> m1(vec.size(), right.vec[0].size());
         for (int i = 0; i < vec.size(); i++) {
             for (int j = 0; j < right.vec[0].size(); j++) {
+                T newnum = 0;
                 for (int k = 0; k < vec[0].size(); k++) {
-                    m1.setVecValue(i, j, this->getvecvalue(i, k) * right.getvecvalue(k, j));
+                    newnum += getvecvalue(i, k) * right.getvecvalue(k, j);
                 }
+                m1.setVecValue(i, j, newnum);
             }
         }
         return m1;
     }//matrix-matrix multiplication
 
-    Matrix operator*(Vector<T> &right) {
-        if (this->vec[0].size() != right.dimension) {
+    Vector<T> operator*(Vector<T> &right) {
+        if (vec[0].size() != right.value.size()) {
             throw Size_Matching_Exception("The dimension of the vector multiplying matrix is wrong!", __LINE__);
         }
-        Matrix<T> m1(right.dimension, 1);
-        for (int i = 0; i < right.dimension; i++) {
-            m1 = m1 + this->pickColvalue(this, i) * right[i];
+        Vector<T> m1(vec.size());
+        Vector<T> m2(vec.size());
+        for (int i = 0; i < right.value.size(); i++) {
+            m2 = pickColvalue(i) * right.getValue(i);
+            m1 = m1 + m2;
         }
         return m1;
     }//matrix-vector multiplication
 
     static inline T hypot(T a, T b)
     {
-        a = std::abs(a);
-        b = std::abs(b);
+        a = abs(a);
+        b = abs(b);
         if (a > b) {
             b /= a;
-            return a*std::sqrt(1 + b*b);
+            return a * sqrt(1 + b*b);
         }
         if (b > 0) {
             a /= b;
-            return b*std::sqrt(1 + a*a);
+            return b * sqrt(1 + a*a);
         }
         return 0;
     }
 
-    int eigen(vector<T>& eigenvalues, vector<vector<T>>& eigenvectors, bool sort_ = true)
+    void eigen(vector<T>& eigenvalues, vector<vector<T>>& eigenvectors)
     {
         auto n = vec.size();
         for (const auto& m : vec) {
             if (m.size() != n) {
                 throw Size_Matching_Exception("matrix must be square and it should be a real symmetric matrix!", __LINE__);
-                return -1;
             }
         }
 
-        eigenvalues.resize(n, (T)0);
-        std::vector<T> V(n * n, (T)0);
+        eigenvalues.resize(n, (T)0);//初始化为单位向量
+        vector<T> V(n * n, (T)0);
         for (int i = 0; i < n; ++i) {
             V[n * i + i] = (T)1;
             eigenvalues[i] = vec[i][i];
         }
-
-        const T eps = std::numeric_limits<T>::epsilon();
+        //初始化为矩阵主对角线元素
+        const T eps = numeric_limits<T>::epsilon();
         int maxIters{ (int)n * (int)n * 30 };
         T mv{(T)0 };
-        std::vector<int> indR(n, 0), indC(n, 0);
-        std::vector<T> A;
+
+        vector<T> indR(n, 0), indC(n, 0);
+
+        vector<T> A;
         for (int i = 0; i < n; ++i) {
             A.insert(A.begin() + i * n, vec[i].begin(), vec[i].end());
-        }
+        }//二维矩阵赋给一维向量
 
         for (int k = 0; k < n; ++k) {
             int m, i;
             if (k < n - 1) {
-                for (m = k + 1, mv = std::abs(A[n*k + m]), i = k + 2; i < n; i++) {
-                    T val = std::abs(A[n * k + i]);
+                for (i = k + 2; i < n; i++) {
+                    m = k + 1;
+                    mv = abs(A[n*k + m]);
+                    T val = abs(A[n * k + i]);
                     if (mv < val)
                         mv = val, m = i;
                 }
                 indR[k] = m;
             }
             if (k > 0) {
-                for (m = 0, mv = std::abs(A[k]), i = 1; i < k; i++) {
-                    T val = std::abs(A[n * i + k]);
+                for (i = 1; i < k; i++) {
+                    m = 0;
+                    mv = abs(A[k]);
+                    T val = abs(A[n * i + k]);
                     if (mv < val)
                         mv = val, m = i;
                 }
                 indC[k] = m;
             }
-        }
+        }//把非绝对值的最大元素赋给indR,并把第K列，前K个元素中绝对值最大的元素赋给indC.
 
         if (n > 1) for (int iters = 0; iters < maxIters; iters++) {
                 int k, i, m;
                 // find index (k,l) of pivot p
-                for (k = 0, mv = std::abs(A[indR[0]]), i = 1; i < n - 1; i++) {
-                    T val = std::abs(A[n * i + indR[i]]);
+                for (i = 1; i < n - 1; i++) {
+                    k = 0;
+                    mv = abs(A[indR[0]]);
+                    T val = abs(A[n * i + indR[i]]);
                     if (mv < val)
                         mv = val, k = i;
                 }
                 int l = indR[k];
                 for (i = 1; i < n; i++) {
-                    T val = std::abs(A[n * indC[i] + i]);
+                    T val = abs(A[n * indC[i] + i]);
                     if (mv < val)
                         mv = val, k = indC[i], l = i;
                 }
-
                 T p = A[n * k + l];
-                if (std::abs(p) <= eps)
+                if (abs(p) <= eps)
                     break;
-                T y = (T)((eigenvalues[l] - eigenvalues[k]) * 0.5);
-                T t = std::abs(y) + hypot(p, y);
+                T y = ((eigenvalues[l] - eigenvalues[k]) * 0.5);
+                T t = abs(y) + hypot(p, y);
                 T s = hypot(p, t);
                 T c = t / s;
-                s = p / s; t = (p / t)*p;
+                s = p / s; t = (p / t) * p;
                 if (y < 0)
                     s = -s, t = -t;
                 A[n*k + l] = 0;
-
                 eigenvalues[k] -= t;
                 eigenvalues[l] += t;
-
                 T a0, b0;
-
 #undef rotate
 #define rotate(v0, v1) a0 = v0, b0 = v1, v0 = a0*c - b0*s, v1 = a0*s + b0*c
-
                 // rotate rows and columns k and l
                 for (i = 0; i < k; i++)
                     rotate(A[n*i + k], A[n*i + l]);
@@ -264,13 +285,10 @@ public:
                     rotate(A[n*k + i], A[n*i + l]);
                 for (i = l + 1; i < n; i++)
                     rotate(A[n*k + i], A[n*l + i]);
-
                 // rotate eigenvectors
                 for (i = 0; i < n; i++)
                     rotate(V[n*k+i], V[n*l+i]);
-
 #undef rotate
-
                 for (int j = 0; j < 2; j++) {
                     int idx = j == 0 ? k : l;
                     if (idx < n - 1) {
@@ -291,30 +309,24 @@ public:
                     }
                 }
             }
-
         // sort eigenvalues & eigenvectors
-        if (sort_) {
-            for (int k = 0; k < n - 1; k++) {
-                int m = k;
-                for (int i = k + 1; i < n; i++) {
-                    if (eigenvalues[m] < eigenvalues[i])
-                        m = i;
-                }
-                if (k != m) {
-                    std::swap(eigenvalues[m], eigenvalues[k]);
-                    for (int i = 0; i < n; i++)
-                        std::swap(V[n*m+i], V[n*k+i]);
-                }
+        for (int k = 0; k < n - 1; k++) {
+            int m = k;
+            for (int i = k + 1; i < n; i++) {
+                if (eigenvalues[m] < eigenvalues[i])
+                    m = i;
+            }
+            if (k != m) {
+                swap(eigenvalues[m], eigenvalues[k]);
+                for (int i = 0; i < n; i++)
+                    swap(V[n*m+i], V[n*k+i]);
             }
         }
-
         eigenvectors.resize(n);
         for (int i = 0; i < n; ++i) {
             eigenvectors[i].resize(n);
             eigenvectors[i].assign(V.begin() + i * n, V.begin() + i * n + n);
         }
-
-        return 0;
     }//eigenvalues and eigenvectors
 
     T Traces(){
@@ -325,20 +337,17 @@ public:
         return traces;
     }//traces
 
-    T determinant(vector<vector<T>> det , int size)//det-行列式，n:行列式的阶数
+    T determinant(vector<vector<T>> det , int size)
     {
         if (this->rows() != this->cols()){
             throw Size_Matching_Exception("Matrix is not square, no determinant!", __LINE__);
         }
-        T detVal = 0;//行列式的值
-
-        if(size == 1)//递归终止条件
+        T detVal = 0;
+        if(size == 1)
             return det[0][0];
-
         vector<vector<T>> tempdet = vector<vector<T >>(size - 1 , vector<T>( size - 1 ));
 
-
-        for(int i=0;i < size ;i++)//第一重循环，行列式按第一行展开
+        for(int i=0;i < size ;i++)
         {
             for(int j = 0 ; j < size -1 ; j++)
                 for(int k=0;k < size - 1 ;k++)
@@ -349,12 +358,11 @@ public:
                         tempdet[j][k] = det[j+1][k+1];
                 }
             detVal += det[0][i] * pow(-1 , i ) * determinant(tempdet, size - 1 );
-
         }
         return detVal;
     }//determinant
 
-    vector<vector<T>>  getAStart(vector<vector<T>> arcs)
+    vector<vector<T>> getAdjugate()
     {
         vector<vector<T>> ans = vector<vector<T>>(vec.size() , vector<T>(vec.size()));
         if(vec.size() == 1)
@@ -372,10 +380,10 @@ public:
                 {
                     for(t=0;t < vec.size() - 1;t++)
                     {
-                        temp[k][t] = arcs[k>=i?k+1:k][t>=j?t+1:t];
+                        temp[k][t] = vec[k>=i?k+1:k][t>=j?t+1:t];
                     }
                 }
-                ans[j][i]  =  determinant(temp,vec.size() - 1);  //此处顺便进行了转置
+                ans[j][i]  =  determinant(temp,vec.size() - 1);
                 if(( i + j ) % 2 == 1)
                 {
                     ans[j][i] = - ans[j][i];
@@ -386,30 +394,27 @@ public:
     }
 
     //得到给定矩阵src的逆矩阵保存到des中。
-    bool GetMatrixInverse(vector<vector<T>>&des)
+    void GetMatrixInverse(vector<vector<T>>& des)
     {
-        des = vector<vector<T >>(vec.size()  , vector<T>(vec.size()));
-        vector<vector<T>> t = vector<vector<T >>(vec.size()  , vector<T>(vec.size()));
-        int flag = determinant(vec , vec.size());
-
+        des = vector<vector<T>>(vec.size()  , vector<T>(vec.size()));
+        vector<vector<T>> t = vector<vector<T>>(vec.size()  , vector<T>(vec.size()));
+        double flag = determinant(vec , vec.size());
         if(0==flag)
         {
-            cout<< "原矩阵行列式为0，无法求逆。请重新运行" <<endl;
-            return false;//如果算出矩阵的行列式为0，则不往下进行
+            throw Size_Matching_Exception("The determinant is 0!", __LINE__);
+
         }
         else
         {
-            t = getAStart(vec,vec.size());
+            t = getAdjugate();
             for(int i = 0;i < vec.size();i++)
             {
                 for(int j = 0;j < vec.size();j++)
                 {
                     des[i][j]=t[i][j]/flag;
                 }
-
             }
         }
-        return true;
     }//inverse
 
     T min_all() {
@@ -426,7 +431,7 @@ public:
 
     T min_row(int row) {
         if (row <= 0 || row > this->rows()) {
-            throw std::invalid_argument("Row out of range!");
+            throw invalid_argument("Row out of range!");
         }
         T min = INT_MAX;
         for (int j = 0; j < vec[0].size(); j++) {
@@ -440,7 +445,7 @@ public:
 
     T min_col(int col) {
         if (col <= 0 || col > this->cols()) {
-            throw std::invalid_argument("col out of range");
+            throw invalid_argument("col out of range");
         }
         T min = INT_MAX;
         for (int j = 0; j < vec[0].size(); j++) {
@@ -466,7 +471,7 @@ public:
 
     T max_row(int row) {
         if (row <= 0 || row > this->rows()) {
-            throw std::invalid_argument("row out of range");
+            throw invalid_argument("row out of range");
         }
         T max = INT_MIN;
         for (int j = 0; j < vec[0].size(); j++) {
@@ -480,7 +485,7 @@ public:
 
     T max_col(int col) {
         if (col <= 0 || col > this->cols()) {
-            throw std::invalid_argument("col out of range");
+            throw invalid_argument("col out of range");
         }
         T max = INT_MIN;
         for (int j = 0; j < vec[0].size(); j++) {
@@ -504,7 +509,7 @@ public:
 
     T sum_row(int row) {
         if (row <= 0 || row > this->rows()) {
-            throw std::invalid_argument("row out of range");
+            throw invalid_argument("row out of range");
         }
         T sum = 0;
         for (int j = 0; j < vec[row].size(); j++) {
@@ -516,7 +521,7 @@ public:
 
     T sum_col(int col) {
         if (col <= 0 || col > this->cols()) {
-            throw std::invalid_argument("col out of range");
+            throw invalid_argument("col out of range");
         }
         T sum = 0;
         for (int j = 0; j < vec.size(); j++) {
@@ -541,7 +546,7 @@ public:
 
     T avg_row(int row) {
         if (row <= 0 || row > this->rows()) {
-            throw std::invalid_argument("row out of range(it begin at 1)");
+            throw invalid_argument("row out of range");
         }
         T sum = 0;
         int he;
@@ -556,7 +561,7 @@ public:
 
     T avg_col(int col) {
         if (col <= 0 || col > this->cols()) {
-            throw std::invalid_argument("col out of range");
+            throw invalid_argument("col out of range");
         }
         T sum = 0;
         int he;
@@ -569,9 +574,9 @@ public:
         return avg;
     }
 
-//    static Matrix<T> reshape(Matrix<T> m, int r, int c);
-//    static Matrix<T> slicing(Matrix<T> m, int rb, int re, int cb, int ce);
-//    static Matrix<T> convolution(Matrix<T> m1, Matrix<T> m2);
+    static Matrix<T> reshape(Matrix<T> m, int r, int c);
+    static Matrix<T> slicing(Matrix<T> m, int rb, int re, int cb, int ce);
+    static Matrix<T> convolution(Matrix<T> m1, Matrix<T> m2);
 
 
     void zhuanhuan(Matrix<T> m);
@@ -586,80 +591,155 @@ public:
 };
 
 template<typename T>
-class Vector {
+class Sparse : public Matrix<T> {
 private:
-    vector<vector<T>> value;
-    int dimension{}; //向量的维数
+    int terms;
+    T *rowArray;   //存非零元素的三元数组
+    T *colArray;    //三元组最大可容纳的元素个数
+    T *valArray;
 public:
+    explicit Sparse();  //构造函数
+    Sparse(Sparse& b);      //赋值构造函数
+    ~Sparse(); //析构函数
+
+    void Assign();
+//    T operator+(T num); //赋值运算符重载
+//    Sparse& Add(Sparse& b, Sparse& c);      //矩阵的加法
+//    Sparse Multiply(Sparse& b);      //矩阵的乘法
+    void Show();
+};
+
+template<typename T>
+Sparse<T>::Sparse(){
+    terms = 0;
+    rowArray = new T[1];
+    colArray = new T[1];
+    valArray = new T[1];
+}
+
+template<typename T>
+Sparse<T>::Sparse(Sparse<T>& b){  //复制构造函数
+    this->rows()=b.rows();      //赋值矩阵的性质
+    this->cols()=b.cols();
+    terms=b.terms;
+    for(int i=0;i<terms;i++){
+        rowArray[i] = b.rowArray[i];
+        colArray[i] = b.colArray[i];
+        valArray[i] = b.valArray[i];
+    }
+}
+template<typename T>
+void Sparse<T>::Assign() {
+    int t;
+    cout << "how many terms in this sparse matrix: ";
+    cin >> t;
+    terms = t;
+    rowArray = new int[t];
+    colArray = new int[t];
+    valArray = new T[t];
+    for (int i = 0; i < t; ++i) {
+        cout << "Input the position and value of the " << i + 1 << "th term:" << endl;
+        cin >> rowArray[i];
+        cin >> colArray[i];
+        cin >> valArray[i];
+    }
+}
+
+template<typename T>
+Sparse<T>::~Sparse(){   //析构函数：释放所有存储
+    delete[] rowArray;
+    delete[] colArray;
+    delete[] valArray;
+}
+
+template<typename T>
+void Sparse<T>::Show() {
+    cout << "Sparse Matrix has " << terms << " non-zero numbers" << endl;
+    for (int i = 0; i < terms; ++i) {
+        cout << "Row: " << rowArray[i] << " , " << "Col: " << colArray[i] << " , " << "value: " << valArray[i] << endl;
+    }
+}
+
+template<typename T>
+class Vector {
+public:
+
     Vector()= default;;
     Vector(Vector& source);
+    explicit Vector(int size);
+    explicit Vector<T>(const vector<T>& vec);
+    explicit Vector<T>(vector<T>&& vec);
     void setValue(int i,T newvalue);
     T getValue(int i);
-    void setDimension(int newDimension);
-    int getDimension();
 
-    Vector pickvalue(Matrix<T> & m, int col){
-        Vector<T> m1;
-        m1.dimension = m.vec[0].size();
-        for(int i = 0 ; i < m1.dimension ; i++){
-            m1[i] = m.getvecvalue(col , i);
+    Vector<T> operator +(Vector<T>& right)
+    {
+        Vector<T> m1(value.size());
+        if(value.size() != right.value.size())
+        {
+            cout << "The dimension is wrong!" << endl;
+            return m1;
+        }
+        for(int i = 0 ; i < value.size() ; i++){
+            m1.setValue(i,getValue(i) + right.getValue(i));
         }
         return m1;
     }
-    Vector operator +(Vector& right)
+    Vector<T> operator -(Vector<T>& right)
     {
-        if(dimension != right.dimension)
+        Vector<T> m1(value.size());
+        if(value.size() != right.value.size())
         {
             std::cout << "The dimension is wrong!" << endl;
-            return this;
+            return m1;
         }
-        for(int i = 0 ; i < dimension ; i++){
-            this->setValue(i,this->getValue(i) + right.getValue(i));
+        for(int i = 0 ; i < value.size() ; i++){
+            m1.setValue(i,getValue(i) - right.getValue(i));
         }
-        return this;
-    }
-    Vector operator -(Vector& right)
-    {
-        if(dimension != right.dimension)
-        {
-            std::cout << "The dimension is wrong!" << endl;
-            return this;
-        }
-        for(int i = 0 ; i < dimension ; i++){
-            this->setValue(i,this->getValue(i) - right.getValue(i));
-        }
-        return this;
+        return m1;
     }
 
-    T operator *(Vector& right)
+    Vector<T> operator *(T right)
     {
-        T ans;
-        for(int i = 0 ; i < dimension ; i++){
-            ans += this->getValue(i) * right.getValue(i);
+        Vector<T> m1(value.size());
+        for(int i = 0 ; i < value.size() ; i++){
+            m1.setValue(i,getValue(i) * right);
+        }
+        return m1;
+    }
+
+    T operator *(Vector<T>& right)
+    {
+        T ans = 0;
+        for(int i = 0 ; i < value.size() ; i++){
+            ans += getValue(i) * right.getValue(i);
         }
         return ans;
     }//dot product
 
-    Matrix<T> operator *(Matrix<T>& right)
+    Vector<T> operator *(Matrix<T>& right)
     {
-        if(dimension != right.vec.size()){
-            cout << "The dimension is wrong!" << endl;
-            return 0;
+        if(value.size() != right.vec.size()){
+            throw Size_Matching_Exception("Dimension of vector is wrong!", __LINE__);
         }
-        Matrix<T> m1(1 , right.dimension);
-        for(int i = 0 ; i < right.dimension ; i++){
-            m1 = m1 + this->pickRowvalue(this , i) * right[i];
+        Vector<T> m1(right.vec[0].size());
+        Vector<T> m2(right.vec[0].size());
+        for(int i = 0 ; i < right.value.size() ; i++){
+            m2 = right.pickColvalue(i) * right[i];
+            m1 = m1 + m2;
         }
         return m1;
     }//matrix-vector multiplication
 
     friend std::ostream &operator<<(std::ostream &output, const Vector<T>& v) {
-        for (const auto &i : v) {
+        for (const auto &i : v.value) {
             output << i << " ";
         }
         output << endl;
         return output;
     }
+
+    vector<T> value;
 };
 
 template<typename T>
@@ -669,11 +749,21 @@ void Vector<T>::setValue(int i, T newvalue) {
 
 template<typename T>
 Vector<T>::Vector(Vector &source) {
-    dimension = source.dimension;
-    for(int i = 0 ; i < dimension ; i++){
+    for(int i = 0 ; i < source.value.size() ; i++){
         value[i] = source.value[i];
     }
 }
+
+template<typename T>
+Vector<T>::Vector(const vector<T>& vec) {
+    this->value = vec;
+}
+
+template<typename T>
+Vector<T>::Vector(vector<T>&& vec) {
+    this->value = move(vec);
+}
+
 
 template<typename T>
 T Vector<T>::getValue(int i) {
@@ -681,14 +771,10 @@ T Vector<T>::getValue(int i) {
 }
 
 template<typename T>
-void Vector<T>::setDimension(int newDimension) {
-    dimension = newDimension;
+Vector<T>::Vector(int size) {
+    this->value = vector<T>(size);
 }
 
-template<typename T>
-int Vector<T>::getDimension() {
-    return dimension;
-}
 
 template<typename T>
 Matrix<T>::Matrix(int rows, int cols) {
@@ -944,13 +1030,8 @@ Matrix<T>  Matrix<T>::nzh() {
         {
             m.xiugai(i, j, readMat1.at<float>(i, j));
         }
-
-
     }
-
     return m;
 }
-
-
 
 #endif //MATRIX_H
