@@ -75,27 +75,30 @@ int main()
                               {4, 5},
                               {5, 6},
                               {7, 8}};
-    vector<vector<int>> v6 = {{2, 3}, {2, 3}, {4, 5},
-                              {5, 6}, {4, 6}, {1, 4}};
+    vector<vector<int>> v6 = {{2, 3},
+                              {2, 3}};
+    Vector<int> vector1{{1,1}};
+
+
     vector<vector<double>> v5 = {{2.1, 2.2, 5.4},
                                  {5.9, 5.8, 7.3}};
 
     //Addition test
     cout << "Addition test:" << endl;
     Matrix<int> add_m1(v1);
-    Matrix<int> add_m2(v1);
+    Matrix<int> add_m2(v3);
     Matrix<int> add_m3;
     Matrix<complex<int>> add_com_m1(com_v1);
     Matrix<complex<int>> add_com_m2 = add_com_m1 + add_com_m1;
     cout << "Before: " << endl;
     cout << add_m1;
     cout << add_m2;
-    cout << "After: " << endl;
-    add_m3 = add_m1 + add_m2;
+    cout << "After adding itself: " << endl;
+    add_m3 = add_m1 + add_m1;
     cout << add_m3;
     cout << "Before: " << endl;
     cout << add_com_m1;
-    cout << "After: " << endl;
+    cout << "After adding itself: " << endl;
     cout << add_com_m2;
 
     //subtraction test
@@ -107,7 +110,9 @@ int main()
     Matrix<double> sub_m5(v5);
     Matrix<double> sub_m6 = sub_m5 - sub_m4;
     cout << "Before: " << endl;
+    cout << "m1: " << endl;
     cout << sub_m1;
+    cout << "m2: " << endl;
     cout << sub_m2;
     cout << "After: " << endl;
     cout << sub_m3;
@@ -119,7 +124,7 @@ int main()
     Matrix<int> mul_m2 = mul_m1 * 3;
     cout << "Before: " << endl;
     cout << mul_m1;
-    cout << "After: " << endl;
+    cout << "After multiplying by 3: " << endl;
     cout << mul_m2;
 
 
@@ -129,7 +134,7 @@ int main()
     Matrix<double> div_m2 = div_m1 / 4;
     cout << "Before: " << endl;
     cout << div_m1;
-    cout << "After: " << endl;
+    cout << "After dividing 4: " << endl;
     cout << div_m2;
 
     //transposition
@@ -156,32 +161,52 @@ int main()
     Matrix<int> ele_m1(v1);
     Matrix<int> ele_m2(v4);
     Matrix<int> ele_m3 = ele_m1.Element_Wise(ele_m2);
-    cout << "Before two: " << endl;
+    cout << "Before: " << endl;
+    cout << "m1: " << endl;
     cout << ele_m1;
+    cout << "m2: " << endl;
     cout << ele_m2;
     cout << "After: " << endl;
     cout << ele_m3;
 
-//    //matrix-matrix multiplication
-//    cout << " matrix-matrix multiplication test: " << endl;
-//    Matrix<int> mm_m1(v1);
-//    Matrix<int> mm_m2(v6);
-//    Matrix<int> mm_m3 = mm_m1 * mm_m2;
-//
-//
-//    //matrix-vector multiplication
-//    cout << "matrix-vector multiplication test: " << endl;
-//    Matrix<int> mv_m1(v1);
-//    Matrix<int> mv_m2 = mv_m1 * v6;
-//
-//
-//    //dot product
-//    cout << "dot product test: " << endl;
-//    vector<vector<int>> d_v1 = v1 * v6;
+    //matrix-matrix multiplication
+    cout << " matrix-matrix multiplication test: " << endl;
+    Matrix<int> mm_m1(v1);
+    Matrix<int> mm_m2(v6);
+    cout << "Before multiply: " << endl;
+    Matrix<int> mm_m3 = mm_m1 * mm_m2;
+
+    cout << "m1: " << endl;
+    cout << mm_m1;
+    cout << "m2: " << endl;
+    cout << mm_m2;
+    cout << "After multiply: " << endl;
+    cout << mm_m3;
+
+
+    //matrix-vector multiplication
+    cout << "matrix-vector multiplication test: " << endl;
+    Matrix<int> mv_m1(v1);
+    Vector<int> mv_m2(v1[0].size());
+    cout << "m1: " << endl;
+    cout << mv_m1;
+    cout << "Vector: " << endl;
+    cout << vector1;
+    cout << "After multiply: " << endl;
+    mv_m2 = mv_m1 * vector1;
+    cout << mv_m2;
+
+
+    //dot product
+    cout << "dot product test: " << endl;
+    int dot1 = vector1 * vector1;
+    cout << dot1 << endl;
 
 
     //cross product
-
+//    cout << "cross product test: " << endl;
+//    Vector<int> cross_v1(vector1.value.size());
+//    cross_v1 = vector1 * vector1;
 
 
     //max
@@ -192,11 +217,77 @@ int main()
     cout << "max of all: " << cal_m1.max_all() << endl;
     cout << "min of all: " << cal_m1.min_all() << endl;
     cout << "max of row1: " << cal_m1.max_row(1) << endl;
-    cout << "min of col1: " << cal_m1.min_col(1) << endl;
+    cout << "min of row1: " << cal_m1.min_row(1) << endl;
     cout << "avg of all: " << cal_m1.avg_all() << endl;
 
+    //trace and determinant
+    cout << "trace and determinant test: " << endl;
+    vector<vector<int>> trace_v1 = {{1, 2},
+                                    {3, 1}};
+    vector<vector<int>> trace_v2 = {{0, 3},
+                                    {2, 1}};
+    vector<vector<int>> trace_v3 = {{0, 3, 0, 6},
+                                   {2, 1, 4, 2},
+                                   {0, 9, 0, 3},
+                                   {6, 3, 2, 1}};
+    vector<vector<int>> trace_v4 = {{1 , 2},
+                                    {-1 , -3}};
+    vector<vector<double>> trace_v5 = {{1 , 2 , -4},
+                                    {2 , -5 , 8},
+                                    {-4 , 8 , 7}};
+    Matrix<int> trace_m1(trace_v1);
+    Matrix<int> trace_m2(trace_v2);
+    Matrix<int> trace_m3(trace_v3);
+
+    cout << "trace of m1: ";
+    cout << trace_m1.Traces() << "\n";
+    cout << "determinant of m1: ";
+    cout << trace_m1.determinant(trace_v1, 2) << "\n";
+    cout << "trace of m2: ";
+    cout << trace_m2.Traces() << "\n";
+    cout << "determinant of m2: ";
+    cout << trace_m2.determinant(trace_v2, 2) << "\n";
+    cout << "trace of m3: ";
+    cout << trace_m3.Traces() << "\n";
+    cout << "determinant of m3: ";
+    cout << trace_m3.determinant(trace_v3, 4) << "\n";
 
 
+    //inverse
+    cout << "inverse test: " << endl;
+    cout << "Before inverse: " << endl;
+    cout << "m1: " << endl;
+    Matrix<int> inverse_m1(trace_v4);
+    cout << inverse_m1;
+    vector<vector<int>> inverse_v1;
+    inverse_m1.GetMatrixInverse(inverse_v1);
+    cout << "After inverse: " << endl;
+    Matrix<int> inverse_m2(inverse_v1);
+    cout << inverse_m2;
+
+
+    //eigenvalue eigenvector
+    cout << "eigen test: " << endl;
+    cout << "Before eigen: " << endl;
+    cout << "m1: " << endl;
+    Matrix<double> eigen_m1(trace_v5);
+    cout << eigen_m1;
+    vector<double> eigenvalues;
+    vector<vector<double>> eigenvectors;
+    eigen_m1.eigen(eigenvalues , eigenvectors);
+    cout << "After eigen: " << endl;
+    cout << "eigen values: " << endl;
+    for(int eigenvalue : eigenvalues){
+        cout << eigenvalue << " ";
+    }
+    cout << endl;
+    cout << "eigen vectors: " << endl;
+    for(int i = 0 ; i < eigenvectors[0].size() ; i++){
+        for(int j = 0 ; j < eigenvectors.size() ; j++){
+            cout << eigenvectors[i][j] << " ";
+        }
+        cout << endl;
+    }
 
 
 
@@ -236,13 +327,9 @@ int main()
     cout << "After convolution: " << endl;
     cout << f;
 
-//    zhuanhuan(f);
-
-//    Matrix<double> g = Matrix<double>::nzh();
-//    cout << g;
+    zhuanhuan(f);
+    Matrix<double> g = Matrix<double>::nzh();
+    cout << g;
 
     return 0;
 }
-//void setVecValue(int rows, int cols, T value);
-//
-//T getvecvalue(int rows, int cols);
